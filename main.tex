@@ -1,0 +1,278 @@
+\documentclass[aspectratio=169]{beamer}
+   \usetheme{metropolis}
+   \setbeamertemplate{blocks}[rounded][shadow=false]
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{dcolumn}
+   \newcolumntype{d}[1]{D{.}{.}{#1}}
+\usepackage{graphicx}
+\usepackage[justification=raggedright]{caption}
+\usepackage{adjustbox}
+\usepackage{color}
+\usepackage{textpos}
+\usepackage{etoolbox}
+\usepackage[cache=true,cachedir=minted_cache]{minted}
+\usepackage{multimedia}
+\usepackage{comment}
+
+\captionsetup[figure]{justification=centering}
+
+\makeatletter
+\patchcmd{\beamer@sectionintoc}{\vskip1.5em}{\vskip0.5em}{}{}
+\makeatother
+
+\definecolor{smured}{rgb}{0.797,0,0.027}
+\definecolor{smublue}{RGB}{48,64,116}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+\definecolor{text_gray}{RGB}{46,58,62}
+
+\setbeamercolor{progress bar}{fg=smured,bg=smublue}
+\setbeamercolor{title separator}{fg=smublue}
+\setbeamercolor{frametitle}{bg=smublue}
+
+\metroset{
+  numbering=fraction
+}
+
+\hypersetup{
+  colorlinks=true,
+  allcolors=text_gray,
+  urlcolor=smured,
+}
+
+\addtobeamertemplate{frametitle}{}{
+\begin{textblock*}{1cm}(\textwidth,-0.96cm)
+\includegraphics[width=0.9cm]{images/smu_logo.pdf}
+\end{textblock*}}
+
+\setminted{breaklines,linenos,fontsize=\scriptsize}
+\setmintedinline{fontsize=auto}
+
+\title{Containerizing All the Things: Using Containers for Research}
+\author{Robert Kalescky\\HPC Research Scientist\\Adjunct Professor of Data Science}
+\institute{
+Research Technology Services\\
+Office of Information Technology\\
+Southern Methodist University}
+\date{}
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+\footnotesize
+\tableofcontents
+\end{frame}
+
+\input{research_services.tex}
+\input{containers.tex}
+
+\section{Docker}
+
+\begin{frame}{Dockerfile}
+\begin{itemize}
+\item Is a ``recipe'' for how to construct an image.
+\item Starts \mintinline{sh}{FROM} a defined base image.
+\item Several basic commands (\mintinline{sh}{ADD}, \mintinline{sh}{COPY},
+\mintinline{sh}{RUN}, etc.) can be applied to mutate the image to the desired
+state.
+\item Metadata labels can also be added to provide information about the image.
+\item In addition to the file system changes, the Dockerfile can also control
+settings like the environment, the starting directory, and default commands.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Basic Dockerfile}
+\inputminted{Dockerfile}{src/python3.dockerfile}
+\end{frame}
+
+\begin{frame}{Docker Image Registries}
+\begin{itemize}
+\item There are several public and private sources for Docker images.
+\item Images can be used as the base image for custom images.
+\item Already optimized images can help with reproducible and efficient
+development workflows.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Docker Image Registries}
+\begin{description}
+\item[Docker] \url{https://hub.docker.com}
+\item[GitHub Packges] \url{https://github.com/features/packages}
+\item[Quay.io] \url{https://quay.io}
+\item[NVIDIA] \url{https://catalog.ngc.nvidia.com}
+\item[Intel] \url{https://hub.docker.com/u/intel}
+\item[AMD] \url{https://hub.docker.com/u/amdih}
+\end{description}
+\end{frame}
+
+\begin{frame}{Pulling Images from Registries}
+\inputminted{sh}{src/docker_image_registries.sh}
+\end{frame}
+
+\begin{frame}{Multi-Architecture Builds}
+\begin{itemize}
+\item Images are CPU-architecture specific
+\item Docker supports multi-architecture builds
+\begin{itemize}
+\item Platforms: amd64, arm32v5, arm32v6, arm32v7, arm64v8, i386, ppc64le, and s390x
+\item \mintinline{sh}{docker build --platform } with single platform
+\item \mintinline{sh}{docker buildx --platform } with list of platforms
+\end{itemize}
+\item Builds on non-native platforms will be slower as it is running via
+emulation
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Docker Multi-Architecture Builds}
+\inputminted{sh}{src/docker_buildx.sh}
+\end{frame}
+
+\begin{frame}{Multi-Stage Builds with Docker}
+\begin{itemize}
+\item Images with build tools can be very large.
+\item Use the needed image for building.
+\item Use the smallest image for running.
+\item Define both the build and execution in a single Dockerfile.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Basic Multi-Stage Dockerfile}
+\inputminted{Dockerfile}{src/hello_world.dockerfile}
+\end{frame}
+
+\begin{frame}{Docker Multi-Architecture Builds}
+\inputminted{sh}{src/docker_build_multi.sh}
+\end{frame}
+
+\section{Apptainer/Singularity}
+
+\begin{frame}{Building Apptainer/Singularity Images}
+\begin{itemize}
+\item Singularity has it's own image
+\href{https://sylabs.io/guides/3.7/user-guide/definition_files.html}{definition
+language}.
+\begin{itemize}
+\item Requires (re)writing the definition file.
+\item Requires root or ``fakeroot'', which is not widely available on HPC
+systems.
+\item Can be done on a Linux system with Singularity installed and them copying
+the image.
+\item Not generally recommended as there would be two definition files to
+maintain, presumably Docker and also Singularity.
+\end{itemize}
+\item Pull from Docker registries.
+\begin{itemize}
+\item Requires pushing and pulling of Docker images.
+\end{itemize}
+\item Build from Docker archives.
+\begin{itemize}
+\item Requires exporting, copying, and conversion of Docker images.
+\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Pulling Docker Containers}
+\inputminted[firstline=0, lastline=8]{sh}{src/docker_buildx_singularity.sh}
+\end{frame}
+
+\begin{frame}{Pulling Docker Containers}
+\inputminted[firstline=10]{sh}{src/docker_buildx_singularity.sh}
+\end{frame}
+
+\begin{frame}{Singularity Workflow}
+\begin{itemize}
+\item Build your Singularity containers on a local system you have root or sudo access. Alternatively build a Docker container
+\item Transfer your container to the HPC system. If you used Docker, you will need to convert the image 
+\item Run your Singularity containers
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Converting from Docker Archives}
+\inputminted[firstline=15, lastline=20]{sh}{src/build_python3_docker.sh}
+\end{frame}
+
+\begin{frame}{Full Example Workflow}
+\begin{itemize}
+\item Build application, separating build and deployment containers
+\item Script container image build and make Lmod module file for ease of use
+\item Convert Docker image to Apptainer/Singularity image using the docker2singularity tool
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Full Example Workflow}
+\inputminted[firstline=1, lastline=18]{Dockerfile}{src/molden/Dockerfile}
+\end{frame}
+
+\begin{frame}{Full Example Workflow}
+\inputminted[firstline=20, lastline=32]{Dockerfile}{src/molden/Dockerfile}
+\end{frame}
+
+\begin{frame}{Full Example Workflow}
+\inputminted[firstline=34, lastline=48]{Dockerfile}{src/molden/Dockerfile}
+\end{frame}
+
+\begin{frame}{Full Example Workflow}
+\inputminted[firstline=1, lastline=11]{sh}{src/molden/build_images.sh}
+\end{frame}
+
+\begin{frame}{Full Example Workflow}
+\inputminted[firstline=13, lastline=21]{sh}{src/molden/build_images.sh}
+\end{frame}
+
+\begin{frame}{Full Example Workflow}
+\inputminted[firstline=23, lastline=28]{sh}{src/molden/build_images.sh}
+\end{frame}
+
+\begin{frame}{Full Example Workflow}
+\inputminted[firstline=30, lastline=34]{sh}{src/molden/build_images.sh}
+\end{frame}
+
+\begin{frame}{Full Example Workflow}
+\inputminted[firstline=36, lastline=43]{sh}{src/molden/build_images.sh}
+\end{frame}
+
+\begin{frame}{Full Example Workflow}
+\inputminted[firstline=1, lastline=5]{lua}{src/molden/molden.lua}
+\end{frame}
+
+\begin{frame}{Full Example Workflow}
+\inputminted[firstline=7, lastline=15]{lua}{src/molden/molden.lua}
+\end{frame}
+
+\begin{frame}{Full Example Workflow}
+\inputminted[firstline=17, lastline=28]{lua}{src/molden/molden.lua}
+\end{frame}
+
+\section{Spack}
+
+\begin{frame}{Spack Containerize}
+\begin{itemize}
+\item Build images defined by Spack environments.
+\item Spack-based build optimizations are preserved.
+\item Intermediate Dockerfile uses multi-stage builds
+\item Currently does not work for multi-architecture builds.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Define a Spack Environment}
+\inputminted{yaml}{src/spack.yaml}
+\end{frame}
+
+\begin{frame}{Build the Image from the Environment}
+\inputminted{sh}{src/spack_containerize.sh}
+\end{frame}
+
+\input{k8s.tex}
+
+\input{conclusion.tex}
+
+\end{document}
+
